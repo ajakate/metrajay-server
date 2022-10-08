@@ -63,10 +63,17 @@ def zipped_data():
 def refresh():
     return refresh_file()
 
-@app.route('/ping')
-def ping():
+@app.route('/')
+def home():
     return "OK"
- 
+
+def register_cron():
+    refresh_url = f"https://{fly_app_name}.fly.dev/refresh"
+    basic_auth = f"{basic_username}:{basic_password}"
+    os.system(f"bash set_keepalive.sh {refresh_url} {basic_auth}")
+    
 if __name__ == '__main__':
+    if fly_app_name:
+        register_cron()
     pull_file()
-    app.run()
+    app.run(host='0.0.0.0', port=8080)

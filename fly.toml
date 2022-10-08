@@ -12,17 +12,8 @@ processes = []
   auto_rollback = true
 
 [[services]]
-  [[services.http_checks]]
-    interval = 10000
-    grace_period = "5s"
-    method = "get"
-    path = "/ping"
-    protocol = "http"
-    restart_limit = 0
-    timeout = 2000
-    tls_skip_verify = false
-    [services.http_checks.headers]
-  internal_port = 5000  
+  http_checks = []
+  internal_port = 8080
   processes = ["app"]
   protocol = "tcp"
   script_checks = []

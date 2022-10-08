@@ -62,6 +62,10 @@ def zipped_data():
 @auth.login_required
 def refresh():
     return refresh_file()
+
+@app.route('/ping')
+def ping():
+    return "OK"
  
 if __name__ == '__main__':
     pull_file()

@@ -11,6 +11,7 @@ load_dotenv()
 basic = HTTPBasicAuth(os.getenv('METRA_USERNAME'), os.getenv('METRA_PASSWORD'))
 basic_username = os.getenv('BASIC_AUTH_USERNAME')
 basic_password = os.getenv('BASIC_AUTH_PASSWORD')
+fly_app_name = os.getenv('FLY_APP_NAME')
 
 app = Flask(__name__)
 auth = fhtp.HTTPBasicAuth()
@@ -37,11 +38,14 @@ def refresh_file():
     r = call_endpoint('/published.txt')
     server_date = parse_date(r.text)
 
+    # TODO: fix response
     if local_date < server_date:
         pull_file()
-        return "Updated from server"
+        # return "Updated from server"
+        return f"app name: {fly_app_name}"
     else:
-        return "No update found, returning..."
+        # return "No update found, returning..."
+        return f"app name: {fly_app_name}"
 
 
 @auth.verify_password

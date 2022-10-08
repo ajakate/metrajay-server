@@ -36,3 +36,10 @@ processes = []
     interval = "15s"
     restart_limit = 0
     timeout = "2s"
+  
+  [[services.script_checks]]
+    command       = "python /app/refresh.py"
+    grace_period  = "1s"
+    interval      = "10s"
+    restart_limit = 0
+    timeout       = "3s"

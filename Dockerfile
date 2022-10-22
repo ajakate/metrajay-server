@@ -1,7 +1,7 @@
 FROM python:3.8.2-slim
 
 RUN apt update
-RUN apt install -y cron
+RUN apt install -y cron curl
 
 WORKDIR /app
 

@@ -1,10 +1,12 @@
-from flask import Flask, send_file
+from flask import Flask, send_file, jsonify
+from flask_caching import Cache
 import flask_httpauth as fhtp
 from dotenv import load_dotenv
 import os
 from requests.auth import HTTPBasicAuth
 import requests
 import datetime
+import database
 
 load_dotenv()
 
@@ -14,6 +16,8 @@ basic_password = os.getenv('BASIC_AUTH_PASSWORD')
 fly_app_name = os.getenv('FLY_APP_NAME')
 
 app = Flask(__name__)
+cache = Cache(app,config={'CACHE_TYPE': 'simple'})
+
 auth = fhtp.HTTPBasicAuth()
 
 def call_endpoint(endpoint):
@@ -22,31 +26,36 @@ def call_endpoint(endpoint):
 def parse_date(date_str):
     return datetime.datetime.strptime(date_str, "%m/%d/%Y %I:%M:%S %p")
 
+@cache.cached(timeout=0)
+def grab_path_data():
+    return jsonify(database.get_paths())
+
 def pull_file():
     r = call_endpoint('/schedule.zip')
-    with open('schedule.zip', "wb") as file:
+    with open('data/schedule.zip', "wb") as file:
         file.write(bytearray(r.content))
 
+    database.load_data('data/schedule.zip')
+    cache.clear()
+    with app.app_context():
+        grab_path_data()
+
     r = call_endpoint('/published.txt')
-    with open('last_update.txt', "w") as file:
+    with open('data/last_update.txt', "w") as file:
         file.write(r.text)
 
 def refresh_file():
-    with open("last_update.txt", "r") as file:
+    with open("data/last_update.txt", "r") as file:
         local_date = parse_date(file.read())
     
     r = call_endpoint('/published.txt')
     server_date = parse_date(r.text)
 
-    # TODO: fix response
     if local_date < server_date:
         pull_file()
-        # return "Updated from server"
-        return f"app name: {fly_app_name}"
+        return "Updated from server"
     else:
-        # return "No update found, returning..."
-        return f"app name: {fly_app_name}"
-
+        return "No update found, returning..."
 
 @auth.verify_password
 def verify_password(username, password):
@@ -56,7 +65,7 @@ def verify_password(username, password):
 @app.route('/bundled_data')
 @auth.login_required
 def zipped_data():
-    return send_file('schedule.zip')
+    return send_file('data/schedule.zip')
 
 @app.route('/refresh')
 @auth.login_required
@@ -66,6 +75,11 @@ def refresh():
 @app.route('/')
 def home():
     return "OK"
+
+@app.route('/paths')
+@auth.login_required
+def paths():
+    return grab_path_data()
 
 def register_cron():
     refresh_url = f"https://{fly_app_name}.fly.dev/refresh"

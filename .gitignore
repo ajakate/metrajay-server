@@ -129,5 +129,5 @@ dmypy.json
 .pyre/
 
 # App static files
-last_update.txt
-schedule.zip
+data/*
+!data/.keep

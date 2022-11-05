@@ -1,7 +1,9 @@
+# from IPython import embed
 from multiprocessing.resource_sharer import stop
 import sqlite3
 import zipfile
 import csv
+import re
 
 recreate_db_q = """
 DROP TABLE IF EXISTS calendar_dates;
@@ -87,6 +89,7 @@ group by s.stop_id, t.route_id;
 """
 
 database_name = 'data/metra.db'
+date_matcher = r'^(\d{4})(\d{2})(\d{2})$'
 
 file_vals = {
     'calendar_dates': ['service_id', 'date', 'exception_type'],
@@ -120,6 +123,13 @@ def get_paths():
             }
     return paths
 
+def filter_date(v):
+    match = re.search(date_matcher, v)
+    if match:
+        return f"{match[1]}-{match[2]}-{match[3]}"
+    else:
+        return v
+
 def load_data(zip_path):
     with zipfile.ZipFile(zip_path,"r") as zip_ref:
         zip_ref.extractall("data/schedule")
@@ -136,10 +146,10 @@ def load_data(zip_path):
             data = []
             for row in reader:
                 vals = [ row[val] for val in v]
+                vals = [ filter_date(v) for v in vals ]
                 data.append(vals)
             qs = ['?'] * len(v)
             cur.executemany(f"INSERT INTO {k} ({','.join(v)}) VALUES({','.join(qs)})", data)
             con.commit()
     cur.close()
     con.close()
-    get_paths()

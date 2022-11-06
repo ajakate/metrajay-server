@@ -1,9 +1,10 @@
-# from IPython import embed
-from multiprocessing.resource_sharer import stop
+from IPython import embed
 import sqlite3
 import zipfile
 import csv
 import re
+import pandas as pd
+from datetime import timedelta, date
 
 recreate_db_q = """
 DROP TABLE IF EXISTS calendar_dates;
@@ -88,6 +89,36 @@ where t.direction_id = 0
 group by s.stop_id, t.route_id;
 """
 
+def get_sched_q(stop1, stop2):
+    return f"""
+select
+
+st.arrival_time time1,
+st.stop_id station1,
+st.stop_sequence seq1,
+t.route_id,
+t.direction_id,
+st2.arrival_time time2,
+st2.stop_id station2,
+st.stop_sequence seq2,
+c.*,
+cd.date ex_date,
+cd.exception_type ex_type
+
+from stop_times st
+join trips t on t.trip_id = st.trip_id
+join stop_times st2 on st2.trip_id = t.trip_id
+join calendar c on c.service_id=t.service_id
+left join calendar_dates cd on cd.service_id=t.service_id
+where st.stop_id = '{stop1}'
+and st2.stop_id = '{stop2}'
+and c.end_date >= Date('now')
+and c.start_date < Date('now', '+40 days') -- TODO: maybe fix this line
+order by t.service_id, direction_id, st.departure_time
+;
+    """
+
+
 database_name = 'data/metra.db'
 date_matcher = r'^(\d{4})(\d{2})(\d{2})$'
 
@@ -129,6 +160,68 @@ def filter_date(v):
         return f"{match[1]}-{match[2]}-{match[3]}"
     else:
         return v
+
+def get_data_for_date(d, df):
+    weekday = d.strftime('%A').lower()
+    today = pd.Timestamp(d)
+    valid_rows = df[df['start_date'] <= today][df['end_date'] >= today]
+
+    return_data = []
+
+    for i, row in valid_rows.iterrows():
+        if (row['ex_type'] == 2) and (row['ex_date'] == today):
+            continue
+        if (row[weekday] == 1) or (row['ex_type'] == 1 and row['ex_date'] == today):
+            return_data.append([row['time1'], row['time2'], row['direction_id']])
+
+    if today in df['ex_date'].unique():
+        sched_type = 'special'
+    else:
+        sched_type = 'standard'
+
+    return [[d, d.strftime('%A').lower(), sched_type], sorted(return_data)]
+
+def create_response(group):
+    dates = group[0]
+    parsed_dates = [ [d[0].strftime("%Y-%m-%d"), d[2] ] for d in dates ]
+    schedule = group[1]
+    inbound = []
+    outbound = []
+    for s in schedule:
+        if s[2] == 0:
+            outbound.append(sorted([s[0],s[1]]))
+        else:
+            inbound.append(sorted([s[1],s[0]]))
+    
+    return {
+        'dates': parsed_dates,
+        'inbound': inbound,
+        'outbound': outbound
+    }
+
+def get_stops(stop1, stop2):
+    dates =  [date.today() + timedelta(days=d) for d in range(7)]
+    con = sqlite3.connect(database_name)
+    df = pd.read_sql_query(get_sched_q(stop1,stop2), con, parse_dates=['start_date','end_date','ex_date'])
+    con.close()
+
+    data_by_date = [get_data_for_date(d, df) for d in dates]
+
+    final = []
+
+    for day,sched in data_by_date:
+        if final == []:
+            final.append([[day], sched])
+            continue
+        
+        last_schedule = final[-1][1]
+        if last_schedule == sched:
+            final[-1][0].append(day)
+            continue
+        final.append([[day], sched])
+    
+    return_data = [create_response(sched_group) for sched_group in final]
+    return return_data
 
 def load_data(zip_path):
     with zipfile.ZipFile(zip_path,"r") as zip_ref:

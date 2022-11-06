@@ -1,4 +1,5 @@
-from flask import Flask, send_file, jsonify
+# from IPython import embed
+from flask import Flask, send_file, jsonify, request
 from flask_caching import Cache
 import flask_httpauth as fhtp
 from dotenv import load_dotenv
@@ -80,6 +81,13 @@ def home():
 @auth.login_required
 def paths():
     return grab_path_data()
+
+# TODO: memoize
+@app.route('/stops', methods=['GET'])
+def stops():
+    args = request.args
+    d = database.get_stops(args['stop1'],args['stop2'])
+    return jsonify(d)
 
 def register_cron():
     refresh_url = f"https://{fly_app_name}.fly.dev/refresh"

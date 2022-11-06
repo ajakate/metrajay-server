@@ -1,4 +1,4 @@
-from IPython import embed
+# from IPython import embed
 import sqlite3
 import zipfile
 import csv

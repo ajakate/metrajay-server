@@ -115,7 +115,7 @@ join calendar c on c.service_id=t.service_id
 left join calendar_dates cd on cd.service_id=t.service_id
 where st.stop_id = '{stop1}'
 and st2.stop_id = '{stop2}'
-and c.end_date >= Date('now')
+and c.end_date >= Date('now', '-1 days')
 and c.start_date < Date('now', '+40 days') -- TODO: maybe fix this line
 order by t.service_id, direction_id, st.departure_time
 ;

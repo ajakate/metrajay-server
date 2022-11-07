@@ -4,7 +4,10 @@ import zipfile
 import csv
 import re
 import pandas as pd
-from datetime import timedelta, date
+from datetime import timedelta, datetime
+from pytz import timezone
+
+chi_zone = timezone('America/Chicago')
 
 recreate_db_q = """
 DROP TABLE IF EXISTS calendar_dates;
@@ -200,7 +203,7 @@ def create_response(group):
     }
 
 def get_stops(stop1, stop2):
-    dates =  [date.today() + timedelta(days=d) for d in range(7)]
+    dates =  [datetime.now(chi_zone).date() + timedelta(days=d) for d in range(7)]
     con = sqlite3.connect(database_name)
     df = pd.read_sql_query(get_sched_q(stop1,stop2), con, parse_dates=['start_date','end_date','ex_date'])
     con.close()

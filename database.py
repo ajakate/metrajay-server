@@ -184,7 +184,7 @@ def get_data_for_date(d, df):
 
     return [[d, d.strftime('%A').lower(), sched_type], sorted(return_data)]
 
-def create_response(group):
+def create_response(group, stop1, stop2):
     dates = group[0]
     parsed_dates = [ [d[0].strftime("%Y-%m-%d"), d[2] ] for d in dates ]
     schedule = group[1]
@@ -196,10 +196,29 @@ def create_response(group):
         else:
             inbound.append(sorted([s[1],s[0]]))
     
+    # TODO: ouch...
+    test = schedule[0]
+    if test[2] == 1:
+        if test[0] > test[1]:
+            inner = stop1
+            outer = stop2
+        else:
+            inner = stop2
+            outer = stop1
+    else:
+        if test[0] > test[1]:
+            inner = stop2
+            outer = stop1
+        else:
+            inner = stop1
+            outer = stop2
+
     return {
         'dates': parsed_dates,
         'inbound': inbound,
-        'outbound': outbound
+        'outbound': outbound,
+        'inner_station': inner,
+        'outer_station': outer
     }
 
 def get_stops(stop1, stop2):
@@ -223,7 +242,7 @@ def get_stops(stop1, stop2):
             continue
         final.append([[day], sched])
     
-    return_data = [create_response(sched_group) for sched_group in final]
+    return_data = [create_response(sched_group, stop1, stop2) for sched_group in final]
     return return_data
 
 def load_data(zip_path):

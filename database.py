@@ -197,21 +197,25 @@ def create_response(group, stop1, stop2):
             inbound.append(sorted([s[1],s[0]]))
     
     # TODO: ouch...
-    test = schedule[0]
-    if test[2] == 1:
-        if test[0] > test[1]:
-            inner = stop1
-            outer = stop2
+    try:
+        test = schedule[0]
+        if test[2] == 1:
+            if test[0] > test[1]:
+                inner = stop1
+                outer = stop2
+            else:
+                inner = stop2
+                outer = stop1
         else:
-            inner = stop2
-            outer = stop1
-    else:
-        if test[0] > test[1]:
-            inner = stop2
-            outer = stop1
-        else:
-            inner = stop1
-            outer = stop2
+            if test[0] > test[1]:
+                inner = stop2
+                outer = stop1
+            else:
+                inner = stop1
+                outer = stop2
+    except:
+        inner = ''
+        outer = ''
 
     return {
         'dates': parsed_dates,

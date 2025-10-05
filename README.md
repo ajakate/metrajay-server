@@ -1,3 +1,7 @@
+# Archived Oct 5, 2025
+
+Archiving this, as now the main metrajay repo contains all logic for scheduling.
+
 # MetraJay Server
 
 backend for fetching zipped metra schedule and map info
